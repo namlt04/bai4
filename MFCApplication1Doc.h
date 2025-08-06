@@ -4,6 +4,7 @@
 
 
 #pragma once
+#include "CData.h"
 
 
 class CMFCApplication1Doc : public CDocument
@@ -40,7 +41,11 @@ protected:
 // Generated message map functions
 protected:
 	DECLARE_MESSAGE_MAP()
-
+public:
+	void Communicate(CData* data)
+	{
+		UpdateAllViews(nullptr, 0, data); 
+	}
 #ifdef SHARED_HANDLERS
 	// Helper function that sets search content for a Search Handler
 	void SetSearchContent(const CString& value);

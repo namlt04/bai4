@@ -5,11 +5,16 @@
 IMPLEMENT_DYNCREATE(CLeftView, CView)
 BEGIN_MESSAGE_MAP(CLeftView, CView)
     ON_NOTIFY(TVN_ITEMEXPANDING, 1234, CLeftView::OnItemExpanding)
+    ON_NOTIFY(TVN_SELCHANGED, 1234, CLeftView::OnSelChange)
 END_MESSAGE_MAP()
 CLeftView::CLeftView() noexcept{}
 
 CLeftView::~CLeftView(){}
 
+struct data {
+    HKEY hKey; 
+    CStringW path;
+};
 void CLeftView::OnInitialUpdate()
 {
     CView::OnInitialUpdate();
@@ -55,22 +60,22 @@ void CLeftView::OnInitialUpdate()
     for (int i = 0; i < _countof(rootKeys); ++i)
     {
         HTREEITEM hRootItem = m_keyView.InsertItem(rootKeys[i].name);
-        m_keyView.SetItemData(hRootItem, (DWORD_PTR)rootKeys[i].hKey); // lưu roottem co 1root key
-        // Kiểm tra, nếu như có subkey thì tạo dump subkey
-        if (HasSubKey(rootKeys[i].hKey, L""))
+        m_Data[hRootItem].first = rootKeys[i].hKey;
+        m_Data[hRootItem].second = L"";
+        if (HasSubKey(hRootItem, L""))
         {
             m_keyView.InsertItem(_T(""), hRootItem);
         }
     }
 }
-BOOL CLeftView::HasSubKey(HKEY hRoot, CStringW path)
+BOOL CLeftView::HasSubKey(HTREEITEM hItem, CStringW path)
 {
     HKEY hKey; 
-    LONG res = RegOpenKeyEx(hRoot, path.GetBuffer(), 0, KEY_ALL_ACCESS, &hKey);
+    LONG res = RegOpenKeyEx(m_Data[hItem].first, path.GetBuffer(), 0, KEY_READ, &hKey);
 
     if (res != ERROR_SUCCESS)
     {
-        AfxMessageBox(_T("Lỗi không thể mở Key con ")); 
+        //AfxMessageBox(_T("Lỗi không thể mở Key con ")); 
         return FALSE; 
     }
 
@@ -79,21 +84,20 @@ BOOL CLeftView::HasSubKey(HKEY hRoot, CStringW path)
     RegCloseKey(hKey);
 
     return (res == ERROR_SUCCESS && nSubKey > 0 ) ;
-    
 }
 
 void CLeftView::OnDraw(CDC* pDC)
 {
     // COMMENT
 }
-void CLeftView::LoadSubKey(HKEY hRoot, CStringW& path, HTREEITEM pParent)
+void CLeftView::LoadSubKey(HKEY hRoot, CStringW path, HTREEITEM pParent)
 {
     HKEY hKey; 
-    LONG res = RegOpenKeyEx(hRoot, path, 0, KEY_ALL_ACCESS, &hKey);
+    LONG res = RegOpenKeyEx(hRoot, path, 0, KEY_READ, &hKey);
 
     if (res != ERROR_SUCCESS)
     {
-        AfxMessageBox(_T("Lỗi không thể load key")); 
+        //AfxMessageBox(_T("Lỗi không thể load key")); 
         return; 
     }
     DWORD index = 0; 
@@ -109,11 +113,17 @@ void CLeftView::LoadSubKey(HKEY hRoot, CStringW& path, HTREEITEM pParent)
             break; 
         else if (result == ERROR_SUCCESS)
         {
-            m_keyView.InsertItem(CString(subKeyName),pParent);
-            path += L"\\" + CStringW(subKeyName);
-            if (HasSubKey(hRoot, path))
+            HTREEITEM hTreeItem = m_keyView.InsertItem(CString(subKeyName),pParent); // Duyệt các item mới, sau đó thêm vào
+            CStringW pathClone = path;
+            if (pathClone.IsEmpty())
+                pathClone += CStringW(subKeyName); 
+            else
+                pathClone += L"\\" + CStringW(subKeyName);
+            m_Data[hTreeItem].first = hRoot; 
+            m_Data[hTreeItem].second = pathClone; 
+            if (HasSubKey(hTreeItem, pathClone))
             {
-                m_keyView.InsertItem(_T(""), pParent);
+                m_keyView.InsertItem(_T(""), hTreeItem);
             }
 
         }
@@ -134,9 +144,11 @@ void CLeftView::OnItemExpanding(NMHDR* pNMHDR, LRESULT* pLresult)
         // Xoa dummy subkey
         m_keyView.DeleteItem(hChild);
 
-        HKEY hKey = (HKEY)m_keyView.GetItemData(hItem);
-        CStringW path = L""; 
-        LoadSubKey(hKey, path , hItem);
+
+        // Lấy root của subkey bấm vào dấu cộng 
+        HKEY hRoot = m_Data[hItem].first; 
+        CStringW path = m_Data[hItem].second; 
+        LoadSubKey(hRoot, path , hItem);
     }
     else if (pNMTreeview->action == TVE_COLLAPSE)
     {
@@ -157,4 +169,18 @@ void CLeftView::OnItemExpanding(NMHDR* pNMHDR, LRESULT* pLresult)
 
 
     //AfxMessageBox(_T("Da click vao tang giam")); 
+}
+void CLeftView::OnSelChange(NMHDR* pNMHDR, LRESULT* lResult)
+{
+
+    NMTREEVIEW* pNMTreeview = (NMTREEVIEW*)pNMHDR; 
+    HTREEITEM hItem = pNMTreeview->itemNew.hItem; 
+
+    CData data(m_Data[hItem].first, m_Data[hItem].second);
+
+    CMFCApplication1Doc* pDoc = (CMFCApplication1Doc*)GetDocument(); 
+    if (pDoc)
+        pDoc->Communicate(&data); 
+
+    
 }

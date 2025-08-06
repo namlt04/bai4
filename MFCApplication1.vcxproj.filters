@@ -51,6 +51,9 @@
     <ClInclude Include="CRightView.h">
       <Filter>Header Files\view</Filter>
     </ClInclude>
+    <ClInclude Include="CData.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="MFCApplication1.cpp">
