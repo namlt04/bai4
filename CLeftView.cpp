@@ -176,11 +176,14 @@ void CLeftView::OnSelChange(NMHDR* pNMHDR, LRESULT* lResult)
     NMTREEVIEW* pNMTreeview = (NMTREEVIEW*)pNMHDR; 
     HTREEITEM hItem = pNMTreeview->itemNew.hItem; 
 
-    CData data(m_Data[hItem].first, m_Data[hItem].second);
+    if (!HasSubKey(hItem, m_Data[hItem].second))
+    {
+        CData data(m_Data[hItem].first, m_Data[hItem].second);
 
-    CMFCApplication1Doc* pDoc = (CMFCApplication1Doc*)GetDocument(); 
-    if (pDoc)
-        pDoc->Communicate(&data); 
+        CMFCApplication1Doc* pDoc = (CMFCApplication1Doc*)GetDocument();
+        if (pDoc)
+            pDoc->Communicate(&data);
+    }
 
     
 }

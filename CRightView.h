@@ -17,8 +17,9 @@ protected:
     virtual void OnInitialUpdate();
     DECLARE_DYNCREATE(CRightView);
     DECLARE_MESSAGE_MAP(); 
-
-
+    CStringW HelperConvert(DWORD type);
+    
+    CStringW GetRegistryValueAsString(DWORD type, BYTE* data, DWORD dataLen);
 
     CListCtrl m_listCtrl; 
 };
