@@ -5,7 +5,9 @@
 IMPLEMENT_DYNCREATE(CRightView, CView)
 
 
+
 BEGIN_MESSAGE_MAP(CRightView, CView)
+    ON_NOTIFY(NM_RCLICK, 1123, CRightView::OnRClick)
 END_MESSAGE_MAP()
 CRightView::CRightView() noexcept {}; 
 CRightView::~CRightView() {};
@@ -76,9 +78,6 @@ void CRightView::OnUpdate(CView* sender, LPARAM lHint, CObject* pHint)
             }
             index += 1; 
         }
-        CString f; 
-        f.Format(_T("%d"), index); 
-        AfxMessageBox(f); 
     }
     // Truy van ra key
     // them vao m_listCtrl
@@ -158,3 +157,28 @@ CStringW CRightView::GetRegistryValueAsString(DWORD type, BYTE* data, DWORD data
     return result;
 }
 
+void CRightView::OnRClick(NMHDR* pNMHDR, LRESULT* pResult)
+{
+    CPoint point;
+    GetCursorPos(&point); // Lấy tọa độ chuột toàn màn hình
+
+    // Xác định item được click nếu cần
+    CPoint ptClient = point;
+    m_listCtrl.ScreenToClient(&ptClient);
+    LVHITTESTINFO hitTest = {};
+    hitTest.pt = ptClient;
+    int index = m_listCtrl.HitTest(&hitTest);
+
+    if (index != -1)
+        m_listCtrl.SetItemState(index, LVIS_SELECTED, LVIS_SELECTED);
+
+    // Hiện popup menu
+    CMenu menu;
+    menu.LoadMenu(IDR_MENU1);
+    CMenu* pPopup = menu.GetSubMenu(0);
+    if (pPopup)
+        pPopup->TrackPopupMenu(TPM_RIGHTBUTTON | TPM_LEFTALIGN, point.x, point.y, this);
+
+    *pResult = 0;
+
+}
