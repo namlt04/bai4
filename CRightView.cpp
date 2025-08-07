@@ -26,6 +26,7 @@ void CRightView::OnInitialUpdate()
     m_listCtrl.InsertColumn(0, _T("Name"), LVCFMT_LEFT, rClient.Width() / 3);
     m_listCtrl.InsertColumn(1, _T("Type"), LVCFMT_LEFT, rClient.Width() / 3);
     m_listCtrl.InsertColumn(2, _T("Data"), LVCFMT_LEFT, rClient.Width() / 3 );
+    m_listCtrl.SetExtendedStyle(m_listCtrl.GetExtendedStyle() | LVS_EX_FULLROWSELECT);
 
   }
 
@@ -169,15 +170,29 @@ void CRightView::OnRClick(NMHDR* pNMHDR, LRESULT* pResult)
     hitTest.pt = ptClient;
     int index = m_listCtrl.HitTest(&hitTest);
 
-    if (index != -1)
-        m_listCtrl.SetItemState(index, LVIS_SELECTED, LVIS_SELECTED);
-
-    // Hiện popup menu
     CMenu menu;
     menu.LoadMenu(IDR_MENU1);
     CMenu* pPopup = menu.GetSubMenu(0);
+
     if (pPopup)
+    {
+        if (index != -1)
+        {
+            // Nếu click trúng item
+            m_listCtrl.SetItemState(index, LVIS_SELECTED, LVIS_SELECTED);
+            pPopup->EnableMenuItem(ID_ITEM_DELETE, MF_BYCOMMAND | MF_ENABLED);
+            pPopup->EnableMenuItem(ID_ITEM_EDIT, MF_BYCOMMAND | MF_ENABLED);
+        }
+        else
+        {
+            // Nếu click vào khoảng trắng → disable
+            pPopup->EnableMenuItem(ID_ITEM_DELETE, MF_BYCOMMAND | MF_GRAYED);
+            pPopup->EnableMenuItem(ID_ITEM_EDIT, MF_BYCOMMAND | MF_GRAYED);
+        }
+
+        // Hiện menu chuột phải
         pPopup->TrackPopupMenu(TPM_RIGHTBUTTON | TPM_LEFTALIGN, point.x, point.y, this);
+    }
 
     *pResult = 0;
 

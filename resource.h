@@ -17,13 +17,16 @@
 #define ID_NEW_NAME                     32778
 #define ID_NEW_HEHE                     32779
 #define ID_NEW_HEHEH                    32780
+#define ID_ITEM_EDIT                    32781
+#define ID_ITEM_DELETE                  32782
+#define ID_ITEM_NEW                     32783
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        312
-#define _APS_NEXT_COMMAND_VALUE         32781
+#define _APS_NEXT_COMMAND_VALUE         32784
 #define _APS_NEXT_CONTROL_VALUE         1000
 #define _APS_NEXT_SYMED_VALUE           310
 #endif
