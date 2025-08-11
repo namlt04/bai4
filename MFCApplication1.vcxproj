@@ -184,7 +184,9 @@
     </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="CEditDialog.h" />
     <ClInclude Include="CLeftView.h" />
+    <ClInclude Include="CNameDialog.h" />
     <ClInclude Include="CRightView.h" />
     <ClInclude Include="CData.h" />
     <ClInclude Include="framework.h" />
@@ -197,7 +199,9 @@
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="CEditDialog.cpp" />
     <ClCompile Include="CLeftView.cpp" />
+    <ClCompile Include="CNameDialog.cpp" />
     <ClCompile Include="CRightView.cpp" />
     <ClCompile Include="MainFrm.cpp" />
     <ClCompile Include="MFCApplication1.cpp" />

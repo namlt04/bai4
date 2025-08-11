@@ -1,4 +1,4 @@
-
+﻿
 // MainFrm.cpp : implementation of the CMainFrame class
 //
 
@@ -18,6 +18,7 @@ IMPLEMENT_DYNCREATE(CMainFrame, CFrameWnd)
 
 BEGIN_MESSAGE_MAP(CMainFrame, CFrameWnd)
 	ON_WM_CREATE()
+	ON_WM_SIZE()
 END_MESSAGE_MAP()
 
 // CMainFrame construction/destruction
@@ -55,16 +56,18 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 BOOL CMainFrame::OnCreateClient(LPCREATESTRUCT /*lpcs*/,
 	CCreateContext* pContext)
 {
-	//return m_wndSplitter.Create(this,
-	//	1, 2,               // TODO: adjust the number of rows, columns
-	//	CSize(10, 10),      // TODO: adjust the minimum pane size
-	//	pContext);
-	// .Create(this, row, column)
+	// # Chia thành 2 cột
 	m_wndSplitter.CreateStatic(this, 1, 2);
-	m_wndSplitter.CreateView(0, 0 , RUNTIME_CLASS(CLeftView), CSize(200, 100), pContext);
-	m_wndSplitter.CreateView(0, 1, RUNTIME_CLASS(CRightView), CSize(700, 100), pContext);
+	// # Kích thước CSize đặt ngẫu nhiên 
+	m_wndSplitter.CreateView(0, 0 , RUNTIME_CLASS(CLeftView), CSize(300, 100), pContext);
+	m_wndSplitter.CreateView(0, 1, RUNTIME_CLASS(CRightView), CSize(600, 100), pContext);
 	return TRUE; 
 
+}
+// # Ghi đè OnSize
+void CMainFrame::OnSize(UINT uType, int cx, int cy)
+{
+	CFrameWnd::OnSize(uType, cx, cy); 
 }
 
 BOOL CMainFrame::PreCreateWindow(CREATESTRUCT& cs)

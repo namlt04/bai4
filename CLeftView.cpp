@@ -5,6 +5,11 @@
 IMPLEMENT_DYNCREATE(CLeftView, CView)
 BEGIN_MESSAGE_MAP(CLeftView, CView)
     ON_NOTIFY(TVN_ITEMEXPANDING, 1234, CLeftView::OnItemExpanding)
+    ON_WM_SIZE()
+    ON_NOTIFY(NM_RCLICK, 1234, CLeftView::OnRClick)
+    ON_COMMAND(ID_RCLICKLEFTVIEW_DELETE, &CLeftView::OnDeleteKey)
+    ON_COMMAND(ID_RCLICKLEFTVIEW_RENAME, &CLeftView::OnRenameKey)
+    ON_COMMAND(ID_RCLICKLEFTVIEW_NEWKEY, &CLeftView::OnNewKey)
     ON_NOTIFY(TVN_SELCHANGED, 1234, CLeftView::OnSelChange)
 END_MESSAGE_MAP()
 CLeftView::CLeftView() noexcept{}
@@ -29,20 +34,6 @@ void CLeftView::OnInitialUpdate()
         1234  // ID control, chọn số tùy ý
     );
 
-    /*m_keyView.InsertItem(_T("Nút cha"));
-    HTREEITEM root =  m_keyView.InsertItem(_T("Nút con 1"), TVI_ROOT);
-    m_keyView.InsertItem(_T("Test"), root); 
-    m_keyView.InsertItem(_T("Test"), root); 
-    m_keyView.InsertItem(_T("Test"), root); 
-    m_keyView.InsertItem(_T("Test"), root); 
-    m_keyView.InsertItem(_T("Test"), root); 
-
-    HTREEITEM root1 = m_keyView.InsertItem(_T("Nút con 2"), TVI_ROOT);
-    m_keyView.InsertItem(_T("Test"), root1);
-    m_keyView.InsertItem(_T("Test"), root1);
-    m_keyView.InsertItem(_T("Test"), root1);
-    m_keyView.InsertItem(_T("Test"), root1);
-    m_keyView.InsertItem(_T("Test"), root1);*/
 
 
     struct {
@@ -186,4 +177,226 @@ void CLeftView::OnSelChange(NMHDR* pNMHDR, LRESULT* lResult)
     }
 
     
+}
+void CLeftView::OnRClick(NMHDR* pNMHDR, LRESULT* pResult)
+{
+
+ /*   NMTREEVIEW* pNMTreeview = (NMTREEVIEW*)pNMHDR; 
+    HTREEITEM hItem = pNMTreeview->itemNew.hItem;*/
+    CPoint point;
+    GetCursorPos(&point); 
+
+    CPoint ptClient = point;
+    UINT uFlags = 0; 
+    m_keyView.ScreenToClient(&ptClient); 
+    HTREEITEM hItem = m_keyView.HitTest(ptClient, &uFlags); 
+    if (hItem != nullptr)
+    {
+        //m_keyView.SelectItem(hItem);
+        m_currentItem = hItem; 
+        CMenu menu;
+        menu.LoadMenuW(IDR_MENU2); 
+        CMenu* pPopup = menu.GetSubMenu(0); 
+        if (pPopup)
+        {
+            pPopup->TrackPopupMenu(TPM_RIGHTBUTTON | TPM_LEFTALIGN, point.x, point.y, this);
+        }
+
+    }
+
+
+    
+}
+// # Thêm OnSize để view tự động resize
+void CLeftView::OnSize(UINT uType, int cx, int cy)
+{
+    CView::OnSize(uType, cx, cy);
+    if (m_keyView.GetSafeHwnd())
+    {
+        m_keyView.MoveWindow(0, 0, cx, cy);
+    }
+}
+
+void CLeftView::OnNewKey()
+{
+     CNameDialog cNDlg; 
+     CStringW csName; 
+     cNDlg.SetData(csName); 
+     if (cNDlg.DoModal() == IDOK )
+     {
+
+         HKEY hKey;
+         DWORD dwDisposition;
+         CStringW csPath = (m_Data[m_currentItem].second.IsEmpty()) ? csName : m_Data[m_currentItem].second + L"\\" + csName;
+         LONG result = RegCreateKeyEx(m_Data[m_currentItem].first, csPath.GetString(), 0, NULL, REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, NULL, &hKey, &dwDisposition);
+         if (result == ERROR_SUCCESS)
+         {
+             if (dwDisposition == REG_OPENED_EXISTING_KEY)
+                 AfxMessageBox(_T(" Key da ton tai, da mo lai key"), MB_ICONINFORMATION); 
+             else
+             {
+                 m_keyView.InsertItem(csName, m_currentItem); 
+                 AfxMessageBox(_T(" Tao Key moi thanh cong "), MB_ICONINFORMATION); 
+             }
+         }
+         else 
+         {
+             AfxMessageBox(_T("Khong the khoi tao Key moi tai vi tri nay, vui long thu lai"));
+         }
+     }
+    
+}
+void CLeftView::OnDeleteKey()
+{
+    LONG l = AfxMessageBox(_T("Ban chac chan muon xoa?"), MB_ICONINFORMATION | MB_YESNO); 
+    // # Bao gom ca xoa tat ca cac subKey
+    if (l == IDYES)
+    {
+        HKEY hKey;
+
+        LONG res = RegOpenKeyEx(m_Data[m_currentItem].first, m_Data[m_currentItem].second, 0, KEY_ALL_ACCESS, &hKey);
+
+        if (res == ERROR_SUCCESS)
+        {
+            //res = RegDeleteTree(hKey, m_Data[m_currentItem].second);
+            res = RegDeleteTree(hKey,NULL); // Voi Tham so NULL ( xoa toan bo subkey cua no )
+
+            // # Dong hKey
+            RegCloseKey(hKey); 
+
+            // # Xoa chinh no
+
+            res = RegDeleteKey(m_Data[m_currentItem].first, m_Data[m_currentItem].second.GetString()); 
+            if (res == ERROR_SUCCESS)
+            {
+                AfxMessageBox(_T("Xoa Key thanh cong"), MB_ICONINFORMATION);
+                m_keyView.DeleteItem(m_currentItem);
+                m_Data.erase(m_currentItem);
+                m_currentItem = nullptr;
+            }
+        }
+      
+        // # Xoa xong subkey
+        
+        // # Xoa tiep key
+
+    }
+
+}
+void CLeftView::OnRenameKey()
+{
+
+    CNameDialog cNDlg;
+    HKEY hKeyRoot = m_Data[m_currentItem].first;
+    // # Xu li ten
+    CStringW fullPath = m_Data[m_currentItem].second; 
+    AfxMessageBox(fullPath); 
+    int pos = fullPath.ReverseFind(L'\\'); 
+    CStringW oldName = fullPath.Mid(pos + 1); 
+    CStringW prefixPath = fullPath.Mid(0, pos + 1); 
+
+    //AfxMessageBox(oldName); 
+    //AfxMessageBox(prefixPath); 
+
+    CStringW csName = oldName;
+    cNDlg.SetData(csName);
+    if (cNDlg.DoModal() == IDOK)
+    {
+        if (csName != oldName)
+        {
+            // khong duoc rong 
+            CStringW pathCreate = prefixPath + csName; 
+            CStringW pathTraversal = prefixPath + oldName; 
+            AfxMessageBox(pathCreate);
+            AfxMessageBox(pathTraversal);
+            // Tao 1 key y het
+            HKEY hKeyDontUse; 
+            RegCreateKeyEx(hKeyRoot, pathCreate, 0, NULL, REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, 0, &hKeyDontUse, NULL); 
+            RecursiveRegKey(hKeyRoot, pathCreate, pathTraversal); 
+
+            // Xoa key cu
+
+            HKEY hKey;
+
+            LONG res = RegOpenKeyEx(m_Data[m_currentItem].first, m_Data[m_currentItem].second, 0, KEY_ALL_ACCESS, &hKey);
+
+            if (res == ERROR_SUCCESS)
+            {
+                //res = RegDeleteTree(hKey, m_Data[m_currentItem].second);
+                res = RegDeleteTree(hKey, NULL); // Voi Tham so NULL ( xoa toan bo subkey cua no )
+
+                // # Dong hKey
+                RegCloseKey(hKey);
+
+                // # Xoa chinh no
+
+                res = RegDeleteKey(m_Data[m_currentItem].first, m_Data[m_currentItem].second.GetString());
+                if (res == ERROR_SUCCESS)
+                {
+                    m_keyView.DeleteItem(m_currentItem);
+                    m_Data.erase(m_currentItem);
+                    m_currentItem = nullptr;
+                }
+            }
+        }
+        else
+            AfxMessageBox(_T("Khong thay doi gi")); 
+    }
+
+
+}
+void CLeftView::RecursiveRegKey(HKEY hKeyRoot, CStringW pathCreate, CStringW pathTraversal)
+{
+
+    HKEY hKeyTraversal; 
+    LONG res = RegOpenKeyEx(hKeyRoot, pathTraversal, 0, KEY_ALL_ACCESS, &hKeyTraversal); // Mo key can sao chep 
+    if (res != ERROR_SUCCESS)
+    {
+        return; 
+    }
+ 
+    WCHAR lpName[512]; 
+    DWORD nameLen, index = 0; 
+    while (true)
+    {
+        nameLen = 512; 
+        res = RegEnumKeyEx(hKeyTraversal, index, lpName, &nameLen,NULL, NULL, NULL, NULL); 
+
+        if (res == ERROR_NO_MORE_ITEMS)
+            break;
+        CString pathCloneCreate, pathCloneTraversal ; 
+        pathCloneCreate = (!pathCreate.IsEmpty()) ? pathCreate + L"\\" + lpName : lpName; 
+        pathCloneTraversal = (!pathTraversal.IsEmpty()) ? pathTraversal + L"\\" + lpName : lpName; 
+        // Tao Reg tu Link
+        HKEY hKeyCreate; 
+        // # Tao 1 Key voi 
+        res = RegCreateKeyEx(hKeyRoot, pathCloneCreate.GetString(), 0, NULL, REG_OPTION_NON_VOLATILE,  KEY_ALL_ACCESS, NULL, &hKeyCreate, NULL);
+
+
+        RecursiveRegKey(hKeyRoot, pathCloneCreate, pathCloneTraversal ); 
+
+        BYTE data[1024]; 
+        DWORD dataLen, indexValue = 0, dwType = 0, nameLen; 
+        WCHAR name[512]; 
+
+        while (true)
+        {
+            // Duyet qua tung reg Value
+            dataLen = 1024; 
+            nameLen = 512;
+            LONG resTraversal = RegEnumValueW(hKeyTraversal, indexValue, name, &nameLen ,NULL, &dwType, data, &dataLen );
+            //RegEnumValueW()
+            if (resTraversal == ERROR_NO_MORE_ITEMS)
+                break; 
+
+            // # Tao Value tuong tu o key moi
+            res = RegSetValueExW(hKeyCreate, CStringW(name).GetString(), 0, dwType, data, dataLen);
+
+            indexValue += 1; 
+            
+        }
+
+        index += 1;
+    }
+    RegCloseKey(hKeyTraversal); 
 }

@@ -54,6 +54,12 @@
     <ClInclude Include="CData.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="CEditDialog.h">
+      <Filter>Header Files\view</Filter>
+    </ClInclude>
+    <ClInclude Include="CNameDialog.h">
+      <Filter>Header Files\view</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="MFCApplication1.cpp">
@@ -75,6 +81,12 @@
       <Filter>Source Files\view</Filter>
     </ClCompile>
     <ClCompile Include="CRightView.cpp">
+      <Filter>Source Files\view</Filter>
+    </ClCompile>
+    <ClCompile Include="CEditDialog.cpp">
+      <Filter>Source Files\view</Filter>
+    </ClCompile>
+    <ClCompile Include="CNameDialog.cpp">
       <Filter>Source Files\view</Filter>
     </ClCompile>
   </ItemGroup>

@@ -25,13 +25,14 @@ public:
 public:
 	virtual BOOL OnCreateClient(LPCREATESTRUCT lpcs, CCreateContext* pContext);
 	virtual BOOL PreCreateWindow(CREATESTRUCT& cs);
-
+	afx_msg void OnSize(UINT uType, int cx, int cy);
 // Implementation
 public:
 	virtual ~CMainFrame();
 #ifdef _DEBUG
 	virtual void AssertValid() const;
 	virtual void Dump(CDumpContext& dc) const;
+
 #endif
 
 //protected:  // control bar embedded members
