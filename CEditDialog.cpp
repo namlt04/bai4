@@ -35,6 +35,8 @@ BOOL CEditDialog::OnInitDialog()
 	SetIcon(hIcon, TRUE); 
 	SetIcon(hIcon, FALSE); 
 	m_ceName.SetWindowTextW(*m_cName); 
+	if (*m_cName == L"(Default)")
+		m_ceName.SetReadOnly(TRUE); 
 
 	m_ceData.SetWindowTextW(*m_cData); 
 	
@@ -53,6 +55,7 @@ void CEditDialog::SetData(CStringW& name, CStringW& data)
 void CEditDialog::OnOK()
 {
 	m_ceName.GetWindowTextW(*m_cName); 
+	m_ceName.SetReadOnly(FALSE); 
 	m_ceData.GetWindowTextW(*m_cData); 
 
 	CDialogEx::OnOK(); 

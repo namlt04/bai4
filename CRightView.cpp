@@ -50,6 +50,7 @@ void CRightView::OnUpdate(CView* sender, LPARAM lHint, CObject* pHint)
         m_listCtrl.DeleteAllItems();
     }
     m_nameIndex = 0;
+  
     if (pHint != nullptr) 
     {
 
@@ -58,19 +59,35 @@ void CRightView::OnUpdate(CView* sender, LPARAM lHint, CObject* pHint)
         m_root = data->hKey; 
         m_path = data->path; 
         
-
-        HKEY hKey; 
+        // Mo key cha
+        HKEY hKey;
         LONG result = RegOpenKeyExW(m_root, m_path, 0, KEY_ALL_ACCESS, &hKey);
-       
+
         if (result != ERROR_SUCCESS)
         {
-            return; 
+            return;
         }
 
+        // # Xu li Value mac dinh 
+        /*
+        */
+        BYTE defaultData[256];
+        DWORD defaultDataLen = 256, defaultType;
+        
+        // ## Truy van xem co ton tai ValueDefault hay khong 
+        LONG ret = RegQueryValueEx(hKey, NULL, NULL, &defaultType, defaultData, &defaultDataLen);
+
+        if (ret != ERROR_SUCCESS)
+        {
+             InsertItemToList(NULL, REG_SZ, NULL, defaultDataLen);
+        }
+        
+
+
+        // Liet ke cac value khac 
         DWORD index = 0; 
         WCHAR name[256]; 
         BYTE b_data[1024]; 
-        
         DWORD nameLen, dataLen, type; 
         while (true)
         {
@@ -94,6 +111,7 @@ void CRightView::InsertItemToList(WCHAR* name, DWORD type, BYTE* data, DWORD dat
 {
 
     CStringW cs_name = CStringW(name);
+    cs_name = cs_name.IsEmpty() ? L"(Default)" : cs_name; 
     int row = m_listCtrl.InsertItem(m_listCtrl.GetItemCount(), cs_name); 
     m_listCtrl.SetItemText(row, 1, RegTypeToString(type));
     m_listCtrl.SetItemText(row, 2, GetRegistryValueAsString(type, data, dataLen));
@@ -298,53 +316,34 @@ void CRightView::OnEditItem()
 {
     CEditDialog cEDlg;
 
+    // # Chuan bi du lieu
     CString name = m_listCtrl.GetItemText(m_iIndex, 0); 
-    // # Không cần truyền type
     CString type = m_listCtrl.GetItemText(m_iIndex, 1); 
-    CString data = m_listCtrl.GetItemText(m_iIndex, 2);    // # Gửi dữ liệu
-    
-    // # Kiểm tra type để truyền vao
-    
-    // ## Nếu type = _T(REG_SZ) hoặc _T(RE_MULTI_SIZE) thì truyền vào toàn bộ
-    // ## Nếu type = DWORD HOẶC QWORD thì chỉ đọc phần hex
-    // ## Nếu type = Dword
-  if (type == ("REG_DWORD"))
-    {
-        CStringW tmp = data.Mid(0, 10); 
-        //data = data.Mid(0, 10); 
-        DWORD dec10 = wcstoul(tmp.GetString(), nullptr, 16);
-        CStringW tmp2; 
-        tmp2.Format(L"%X", dec10); 
-        data = tmp2;
+    CString data = m_listCtrl.GetItemText(m_iIndex, 2);      
 
+    // # Xu li du lieu
+    if (type == ("REG_DWORD"))
+    {
+        CStringW subData = data.Mid(2, 8);
+        data = subData;
     }
     else if (type == ("REG_QWORD"))
     {
-        CStringW tmp = data.Mid(0, 18); 
-        //data = data.Mid(0, 10); 
-        DWORD dec10 = wcstoul(tmp.GetString(), nullptr, 16);
-        CStringW tmp2; 
-        tmp2.Format(L"%X", dec10); 
-        data = tmp2;
-
-
-    } 
+        CStringW subData = data.Mid(2, 16); 
+        data = subData;
+    }
+    // # con lai, day het len CEdit
+ 
     cEDlg.SetData(name, data); 
     DWORD dwType = StringToRegType(type); 
     if (cEDlg.DoModal() == IDOK)
     {
 
-        // # Lấy dữ liệu 
-        // if (m_iIndex == -1) - Exception này không thể tồn tại
-        
-
-
 
 
         // # Cập nhật Registry  
         
-
-        // ## Lấy được HKEY của value
+        // ## Lấy được HKEY của Key 
         
         HKEY hKey; 
         LONG res = RegOpenKeyEx(m_root, m_path, 0, KEY_ALL_ACCESS, &hKey); 

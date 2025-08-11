@@ -290,7 +290,7 @@ void CLeftView::OnRenameKey()
     HKEY hKeyRoot = m_Data[m_currentItem].first;
     // # Xu li ten
     CStringW fullPath = m_Data[m_currentItem].second; 
-    AfxMessageBox(fullPath); 
+    //AfxMessageBox(fullPath); 
     int pos = fullPath.ReverseFind(L'\\'); 
     CStringW oldName = fullPath.Mid(pos + 1); 
     CStringW prefixPath = fullPath.Mid(0, pos + 1); 
@@ -307,15 +307,16 @@ void CLeftView::OnRenameKey()
             // khong duoc rong 
             CStringW pathCreate = prefixPath + csName; 
             CStringW pathTraversal = prefixPath + oldName; 
-            AfxMessageBox(pathCreate);
-            AfxMessageBox(pathTraversal);
             // Tao 1 key y het
+            // Lay HTREEITEM cha cua cai can sao chep
             HKEY hKeyDontUse; 
             RegCreateKeyEx(hKeyRoot, pathCreate, 0, NULL, REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, 0, &hKeyDontUse, NULL); 
+            // Them vao Tree Control 
+            m_keyView.SetItemText(m_currentItem, csName);
             RecursiveRegKey(hKeyRoot, pathCreate, pathTraversal); 
 
-            // Xoa key cu
 
+            // Xoa key cu
             HKEY hKey;
 
             LONG res = RegOpenKeyEx(m_Data[m_currentItem].first, m_Data[m_currentItem].second, 0, KEY_ALL_ACCESS, &hKey);
@@ -328,15 +329,21 @@ void CLeftView::OnRenameKey()
                 // # Dong hKey
                 RegCloseKey(hKey);
 
+
                 // # Xoa chinh no
 
                 res = RegDeleteKey(m_Data[m_currentItem].first, m_Data[m_currentItem].second.GetString());
                 if (res == ERROR_SUCCESS)
                 {
-                    m_keyView.DeleteItem(m_currentItem);
-                    m_Data.erase(m_currentItem);
-                    m_currentItem = nullptr;
+                    //m_keyView.DeleteItem(m_currentItem);
+                    //m_Data.erase(m_currentItem);
+                    //m_currentItem = nullptr;
+                    
                 }
+                m_Data[m_currentItem].second = pathCreate; 
+                m_keyView.SetItemText(m_currentItem, csName);
+                m_keyView.UpdateWindow(); 
+
             }
         }
         else
@@ -349,54 +356,62 @@ void CLeftView::RecursiveRegKey(HKEY hKeyRoot, CStringW pathCreate, CStringW pat
 {
 
     HKEY hKeyTraversal; 
-    LONG res = RegOpenKeyEx(hKeyRoot, pathTraversal, 0, KEY_ALL_ACCESS, &hKeyTraversal); // Mo key can sao chep 
+    // # Mo Key can sao chep 
+    LONG res = RegOpenKeyEx(hKeyRoot, pathTraversal, 0, KEY_ALL_ACCESS, &hKeyTraversal);  
     if (res != ERROR_SUCCESS)
     {
         return; 
     }
  
-    WCHAR lpName[512]; 
-    DWORD nameLen, index = 0; 
+    WCHAR nameKey[512]; 
+    DWORD nameKeyLen, indexKey = 0; 
     while (true)
+
     {
-        nameLen = 512; 
-        res = RegEnumKeyEx(hKeyTraversal, index, lpName, &nameLen,NULL, NULL, NULL, NULL); 
+
+        nameKeyLen = 512; 
+        res = RegEnumKeyEx(hKeyTraversal, indexKey, nameKey, &nameKeyLen,NULL, NULL, NULL, NULL); 
 
         if (res == ERROR_NO_MORE_ITEMS)
             break;
         CString pathCloneCreate, pathCloneTraversal ; 
-        pathCloneCreate = (!pathCreate.IsEmpty()) ? pathCreate + L"\\" + lpName : lpName; 
-        pathCloneTraversal = (!pathTraversal.IsEmpty()) ? pathTraversal + L"\\" + lpName : lpName; 
-        // Tao Reg tu Link
-        HKEY hKeyCreate; 
+        pathCloneCreate = (!pathCreate.IsEmpty()) ? pathCreate + L"\\" + nameKey : nameKey; 
+        pathCloneTraversal = (!pathTraversal.IsEmpty()) ? pathTraversal + L"\\" + nameKey : nameKey; 
+       
+
         // # Tao 1 Key voi 
+        HKEY hKeyCreate;
         res = RegCreateKeyEx(hKeyRoot, pathCloneCreate.GetString(), 0, NULL, REG_OPTION_NON_VOLATILE,  KEY_ALL_ACCESS, NULL, &hKeyCreate, NULL);
 
+        // # De quy de tao registry tree moi 
+        RecursiveRegKey(hKeyRoot, pathCloneCreate, pathCloneTraversal );      
 
-        RecursiveRegKey(hKeyRoot, pathCloneCreate, pathCloneTraversal ); 
-
-        BYTE data[1024]; 
-        DWORD dataLen, indexValue = 0, dwType = 0, nameLen; 
-        WCHAR name[512]; 
-
-        while (true)
-        {
-            // Duyet qua tung reg Value
-            dataLen = 1024; 
-            nameLen = 512;
-            LONG resTraversal = RegEnumValueW(hKeyTraversal, indexValue, name, &nameLen ,NULL, &dwType, data, &dataLen );
-            //RegEnumValueW()
-            if (resTraversal == ERROR_NO_MORE_ITEMS)
-                break; 
-
-            // # Tao Value tuong tu o key moi
-            res = RegSetValueExW(hKeyCreate, CStringW(name).GetString(), 0, dwType, data, dataLen);
-
-            indexValue += 1; 
-            
-        }
-
-        index += 1;
+        indexKey += 1;
     }
+
+
+    HKEY hKeyCopyValue; 
+    RegOpenKeyEx(hKeyRoot, pathCreate, 0, KEY_ALL_ACCESS, &hKeyCopyValue); 
+    // # Tao value moi 
+    BYTE dataValue[1024];
+    DWORD dataValueLen, indexValue = 0, typeValue = 0, nameValueLen;
+    WCHAR nameValue[512];
+
+    while (true)
+    {
+        // ## Duyet qua tung value
+        dataValueLen = 1024;
+        nameValueLen = 512;
+        LONG resTraversal = RegEnumValueW(hKeyTraversal, indexValue, nameValue, &nameValueLen, NULL, &typeValue, dataValue, &dataValueLen);
+
+        if (resTraversal == ERROR_NO_MORE_ITEMS)
+            break;
+        // ## Tao value tuong tu o key moi
+        res = RegSetValueExW(hKeyCopyValue, CStringW(nameValue).GetString(), 0, typeValue, dataValue, dataValueLen);
+        indexValue += 1;
+
+    }
+
+    RegCloseKey(hKeyCopyValue); 
     RegCloseKey(hKeyTraversal); 
 }
