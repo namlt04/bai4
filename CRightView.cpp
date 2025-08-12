@@ -77,10 +77,11 @@ void CRightView::OnUpdate(CView* sender, LPARAM lHint, CObject* pHint)
         // ## Truy van xem co ton tai ValueDefault hay khong 
         LONG ret = RegQueryValueEx(hKey, NULL, NULL, &defaultType, defaultData, &defaultDataLen);
 
-        if (ret != ERROR_SUCCESS)
-        {
-             InsertItemToList(NULL, REG_SZ, NULL, defaultDataLen);
-        }
+        // ## dung hay sai cung them default value
+        if (ret == ERROR_SUCCESS)
+            InsertItemToList(NULL, defaultType, defaultData, defaultDataLen);
+        else 
+            InsertItemToList(NULL, REG_SZ, NULL, defaultDataLen);
         
 
 
@@ -100,7 +101,8 @@ void CRightView::OnUpdate(CView* sender, LPARAM lHint, CObject* pHint)
             else if (result == ERROR_SUCCESS)
             {
                 // # Them Item
-                InsertItemToList(name, type, b_data, dataLen); 
+                if (!CStringW(name).IsEmpty())
+                    InsertItemToList(name, type, b_data, dataLen); 
             }
             index += 1; 
         }
@@ -263,18 +265,22 @@ void CRightView::OnRClick(NMHDR* pNMHDR, LRESULT* pResult)
 
     if (pPopup)
     {
-        if (m_iIndex != -1)
+        if (m_iIndex != -1 && m_iIndex != 0)
         {
             // Nếu click trúng item
             m_listCtrl.SetItemState(m_iIndex, LVIS_SELECTED, LVIS_SELECTED);
             pPopup->EnableMenuItem(ID_ITEM_DELETE, MF_BYCOMMAND | MF_ENABLED);
             pPopup->EnableMenuItem(ID_ITEM_EDIT, MF_BYCOMMAND | MF_ENABLED);
         }
+        else if ( m_iIndex == 0 )
+        {
+            pPopup->EnableMenuItem(ID_ITEM_DELETE, MF_BYCOMMAND | MF_GRAYED);
+        }
         else
         {
-            // Nếu click vào khoảng trắng → disable
             pPopup->EnableMenuItem(ID_ITEM_DELETE, MF_BYCOMMAND | MF_GRAYED);
             pPopup->EnableMenuItem(ID_ITEM_EDIT, MF_BYCOMMAND | MF_GRAYED);
+
         }
 
         // Hiện menu chuột phải
@@ -334,8 +340,9 @@ void CRightView::OnEditItem()
     }
     // # con lai, day het len CEdit
  
-    cEDlg.SetData(name, data); 
     DWORD dwType = StringToRegType(type); 
+    if (name == _T("(Default)")) name = "";
+    cEDlg.SetData(name, data, dwType); 
     if (cEDlg.DoModal() == IDOK)
     {
 
@@ -344,6 +351,11 @@ void CRightView::OnEditItem()
         // # Cập nhật Registry  
         
         // ## Lấy được HKEY của Key 
+        if (name.IsEmpty() && m_iIndex != 0)
+        {
+            AfxMessageBox(_T("Ten khong duoc phep de trong")); 
+            return; 
+        }
         
         HKEY hKey; 
         LONG res = RegOpenKeyEx(m_root, m_path, 0, KEY_ALL_ACCESS, &hKey); 
@@ -352,12 +364,15 @@ void CRightView::OnEditItem()
             AfxMessageBox(_T("Đã có lỗi xảy ra")); 
         }
         // ## Cập nhật value 
-        std::vector<BYTE> vec = Convert(dwType, data);
+        std::vector<BYTE> vec = Convert(dwType, data); // Convert sang byte
         DWORD len = static_cast<DWORD>(vec.size()); 
-         res = RegSetValueEx(hKey, name.GetString(), 0, dwType, vec.data(), len);
+         res = RegSetValueEx(hKey, (name.IsEmpty()) ? NULL : name.GetString(), 0, dwType, vec.data(), len);
 
         if (res == ERROR_SUCCESS)
         {
+            // Cap nhat tren list
+            m_listCtrl.SetItemText(m_iIndex, 0, name);
+            m_listCtrl.SetItemText(m_iIndex, 2, data);
             AfxMessageBox(_T(" Cập nhật Value thành công"), MB_ICONINFORMATION); 
         }
 
